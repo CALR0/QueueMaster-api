@@ -12,3 +12,4 @@ build/
 .pytest_cache/
 /.pytest_cache
 /.vscode
+*.db
