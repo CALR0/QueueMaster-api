@@ -1,7 +1,14 @@
+import sys
+import os
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
+# ensure project root is on sys.path so `import app` works when pytest runs
+ROOT = os.path.dirname(os.path.dirname(__file__))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
 
 from app import app as _app
 from app.db.base import Base

@@ -1,7 +1,7 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from datetime import datetime
-from app.models.models import TicketStatus
+from app.models import TicketStatus
 
 
 class TicketCreate(BaseModel):
@@ -9,7 +9,7 @@ class TicketCreate(BaseModel):
 
 
 class TicketUpdate(BaseModel):
-    status: Optional[TicketStatus]
+    status: Optional[TicketStatus] = None
 
 
 class TicketRead(BaseModel):
@@ -19,6 +19,4 @@ class TicketRead(BaseModel):
     status: TicketStatus
     created_at: datetime
     served_at: Optional[datetime]
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)

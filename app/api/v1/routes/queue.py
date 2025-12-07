@@ -9,13 +9,6 @@ from app.schemas.queue import QueueCreate, QueueRead, QueueUpdate
 
 router = APIRouter()
 
-
-@router.on_event("startup")
-def startup():
-    # Create tables for demo purposes. Use Alembic for production migrations.
-    Base.metadata.create_all(bind=engine)
-
-
 @router.post("/", response_model=QueueRead)
 def create(q_in: QueueCreate, db: Session = Depends(get_db)):
     q = queue_service.create_queue(db, q_in)

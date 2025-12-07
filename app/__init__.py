@@ -2,14 +2,26 @@
 
 Entry point: `uvicorn app:app --reload` will import this module and expose `app`.
 """
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
+from contextlib import asynccontextmanager
 from app.core.config import settings
 
 from app.api.v1.routes import queue, tickets, stats, notifications
+from app.db.base import Base
+from app.db.session import engine
 
-app = FastAPI(title="QueueMaster API", version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup actions: create tables for demo purposes (use Alembic in production)
+    Base.metadata.create_all(bind=engine)
+    yield
+    # Shutdown actions (none for now)
+
+
+app = FastAPI(title="QueueMaster API", version="0.1.0", lifespan=lifespan)
 
 # Basic CORS for local testing
 app.add_middleware(

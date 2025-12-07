@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 from typing import Dict, Any, List
 
-from app.models.models import Ticket, TicketStatus
+from app.models import Ticket, TicketStatus
 from app.utils.time_calc import duration_seconds, avg_wait_time
 
 
