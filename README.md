@@ -172,6 +172,29 @@ alembic revision --autogenerate -m "create initial tables"
 alembic upgrade head
 ```
 
+Docker (optional)
+
+This repository includes a `Dockerfile` and a `docker-compose.yml` to run a
+Postgres database and the web app. By default the compose file exposes Postgres
+on port `5432` and the app on `8000`.
+
+Start services:
+
+```bash
+docker compose up --build
+```
+
+The `web` service runs `alembic upgrade head` at startup and then launches
+`uvicorn`. The `DATABASE_URL` environment variable in `docker-compose.yml`
+is already configured for the included Postgres service. If you change DB
+credentials, update both `.env` (for local runs) and `docker-compose.yml`.
+
+Stop and remove containers:
+
+```bash
+docker compose down -v
+```
+
 Troubleshooting
 
 - `ModuleNotFoundError: No module named 'app'` when running `pytest`: run `pytest` from the project root or use the venv's `python`.
