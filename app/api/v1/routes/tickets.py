@@ -5,7 +5,7 @@ from typing import List
 from app.db.session import get_db
 from app.services import ticket_service
 from app.schemas.ticket import TicketCreate, TicketRead, TicketUpdate
-from app.models.models import TicketStatus
+from app.models import TicketStatus
 
 router = APIRouter()
 

@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
-from app.models.models import Queue
+from app.models import Queue
 from app.schemas.queue import QueueCreate, QueueUpdate
 
 

@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from typing import Optional
 
@@ -8,6 +8,4 @@ class StatsRead(BaseModel):
     metric: str
     value: Optional[str]
     created_at: datetime
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
