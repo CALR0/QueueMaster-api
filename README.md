@@ -1,91 +1,206 @@
 # QueueMaster
 
-Backend-only API for managing virtual queues for businesses.
+QueueMaster is a backend-only API for managing virtual queues and service tickets
+for businesses. It allows creating and managing queues, issuing and assigning
+tickets (FIFO), changing ticket states, simulating notifications, and fetching
+basic statistics.
 
-Quick start
+Documentation contents
+- Feature summary
+- Project structure
+- Available endpoints (with examples)
+- Configuration / Environment variables
+- Installation and running (Windows / Unix)
+- Tests
+- Migrations and deployment
+- Troubleshooting
 
-1. Create a virtualenv and install requirements:
+Feature summary
+- Queue CRUD (create, list, update, delete).
+- Issue tickets per queue (sequential numbers per queue).
+- FIFO assignment: pull the next pending ticket.
+- Ticket states: `waiting`, `served`, `cancelled`.
+- Simulated notifications (mock) for clients.
+- Basic statistics: average wait time, min/max, tickets served.
 
-```powershell
-python -m venv .venv; .\.venv\Scripts\Activate.ps1; pip install -r requirements.txt
+Project structure
+
+- `app/` - main package
+	- `__init__.py` - FastAPI instance and lifespan (startup/shutdown)
+	- `api/v1/routes/` - REST routes: `queue.py`, `tickets.py`, `stats.py`, `notifications.py`
+	- `models/` - SQLAlchemy models split by file: `queue.py`, `ticket.py`, `stats.py`
+	- `schemas/` - Pydantic schemas for validation and serialization
+	- `services/` - business logic (queues, tickets, stats, notifications)
+	- `utils/` - utilities (in-memory FIFO, time calculations, mocks)
+	- `db/` - `session.py`, `base.py`, `migrations/` (Alembic placeholder)
+	- `core/` - configuration and logging
+- `tests/` - tests using `pytest` and FastAPI `TestClient`
+- `requirements.txt`, `.env.example`, `README.md`
+
+Endpoints (API v1)
+
+Base URL: `/api/v1`
+
+Queues
+- `POST /api/v1/queues/` — Create a new queue
+	- JSON body: `{ "name": "My Queue", "description": "Description" }`
+	- Response: `QueueRead` (id, name, description, created_at)
+
+- `GET /api/v1/queues/` — List queues
+
+- `GET /api/v1/queues/{queue_id}` — Get a specific queue
+
+- `PUT /api/v1/queues/{queue_id}` — Update a queue (partial)
+	- Example body: `{ "description": "New description" }`
+
+- `DELETE /api/v1/queues/{queue_id}` — Delete a queue
+
+Tickets
+- `POST /api/v1/tickets/` — Create a ticket
+	- Body: `{ "queue_id": 1 }`
+	- Response: `TicketRead` (id, number, queue_id, status, created_at)
+
+- `POST /api/v1/tickets/assign/{queue_id}` — Assign (pop) the next FIFO ticket
+
+- `PATCH /api/v1/tickets/{ticket_id}` — Change a ticket's state
+	- Body: `{ "status": "served" }` (valid values: `waiting`, `served`, `cancelled`)
+
+- `GET /api/v1/tickets/queue/{queue_id}` — List tickets for a queue
+
+Stats
+- `GET /api/v1/stats/queue/{queue_id}` — Simple queue statistics
+	- Response: average/min/max (seconds), total tickets and served count
+
+Notifications
+- `POST /api/v1/notifications/send` — Send a simulated notification
+	- Body: `{ "to": "user@example.com", "subject": "Hello", "message": "Your turn..." }`
+
+Quick examples (curl / PowerShell)
+
+Create queue (curl):
+
+```bash
+curl -s -X POST http://127.0.0.1:8000/api/v1/queues/ \
+	-H "Content-Type: application/json" \
+	-d '{"name":"Store A","description":"General service"}'
 ```
 
-Windows (Command Prompt / CMD)
+Create ticket (PowerShell):
+
+```powershell
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/v1/tickets/ -Body (ConvertTo-Json @{ queue_id = 1 }) -ContentType 'application/json'
+```
+
+Assign next (curl):
+
+```bash
+curl -s -X POST http://127.0.0.1:8000/api/v1/tickets/assign/1
+```
+
+Configuration / Environment variables
+
+Copy `.env.example` to `.env` and adjust values to your environment. Important variables:
+
+- `DATABASE_URL` — SQLAlchemy URL (default `sqlite:///./queuemaster.db`)
+- `SECRET_KEY` — secret key if you add authentication
+- `ACCESS_TOKEN_EXPIRE_MINUTES` — token expiration (optional)
+- `API_KEY` — example API key for protected endpoints (optional)
+- `LOG_LEVEL` — logging level
+
+Installation and running
+
+We recommend using a virtual environment. Examples for different platforms follow.
+
+Unix / macOS / WSL / Git Bash:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip setuptools wheel
+python -m pip install -r requirements.txt
+cp .env.example .env
+python -m uvicorn app:app --reload
+```
+
+Windows PowerShell (recommended; avoids policy issues):
+
+```powershell
+# create venv
+python -m venv .venv
+
+# install dependencies using the venv's python (activation not required)
+.venv\Scripts\python -m pip install --upgrade pip setuptools wheel
+.venv\Scripts\python -m pip install -r requirements.txt
+Copy-Item .env.example .env
+.venv\Scripts\python -m uvicorn app:app --reload
+```
+
+Windows CMD (Command Prompt):
 
 ```bat
 python -m venv .venv
-.venv\Scripts\activate.bat
-pip install -r requirements.txt
-```
-
-2. Copy `.env.example` to `.env` and adjust values.
-
-3. Run the app:
-
-```powershell
-uvicorn app:app --reload
-```
-
-Windows (Command Prompt / CMD)
-
-```bat
-REM Start the server using the venv's python (no activation required)
+.venv\Scripts\python -m pip install --upgrade pip setuptools wheel
+.venv\Scripts\python -m pip install -r requirements.txt
+copy .env.example .env
 .venv\Scripts\python -m uvicorn app:app --reload
-
-REM Or, after activating the venv in CMD:
-REM .venv\Scripts\activate.bat
-REM uvicorn app:app --reload
 ```
 
-API
+Interactive docs
 
-- The application `FastAPI` instance is in `app/__init__.py`.
-- Routes are under `app/api/v1/routes/`.
+After the server is running, the automatic API documentation is available at:
+
+- Swagger UI: `http://127.0.0.1:8000/docs`
+- ReDoc: `http://127.0.0.1:8000/redoc`
 
 Tests
 
-Run tests with:
+Tests use `pytest` and an ephemeral SQLite test database. Run:
 
-```powershell
-pytest -q
+```bash
+.\.venv\Scripts\python -m pytest -q
 ```
 
-This repository is a minimal, self-contained example of a queue/ticketing backend.
+Migrations (Alembic)
 
-**Robust setup (recommended for Windows users)**
+The `app/db/migrations/` folder is a placeholder. To use Alembic in production:
 
-If other users will run this project on Windows, this sequence is the most reliable
-and avoids PowerShell execution-policy issues and local build failures (for example
-when compiling native wheels).
-
-PowerShell (single-session, no activation required):
-
-```powershell
-# remove and recreate a clean virtualenv (optional but recommended when troubleshooting)
-rmdir /s /q .venv
-python -m venv .venv
-.venv\Scripts\activate.bat
-
-# use the venv's python to upgrade pip/wheel/setuptools and install deps
-pip install --upgrade pip setuptools wheel
-pip install -r requirements.txt
-# run the app
-.\.venv\Scripts\python -m uvicorn app:app --reload
+```bash
+pip install alembic
+alembic init app/db/migrations
+# then configure alembic.ini/env.py to use your SQLAlchemy connection
+alembic revision --autogenerate -m "create initial tables"
+alembic upgrade head
 ```
 
-CMD (Command Prompt) equivalent:
+Docker (optional)
 
-```bat
-:: remove and recreate venv
-rmdir /s /q .venv
-python -m venv .venv
-.venv\Scripts\activate.bat
+This repository includes a `Dockerfile` and a `docker-compose.yml` to run a
+Postgres database and the web app. By default the compose file exposes Postgres
+on port `5432` and the app on `8000`.
 
-:: install deps and run
-pip install --upgrade pip setuptools wheel
-pip install -r requirements.txt
-uvicorn app:app --reload
+Start services:
+
+```bash
+docker compose up --build
 ```
 
-Notes:
-- For interactive testing you can open `http://127.0.0.1:8000/docs` after starting the server.
+The `web` service runs `alembic upgrade head` at startup and then launches
+`uvicorn`. The `DATABASE_URL` environment variable in `docker-compose.yml`
+is already configured for the included Postgres service. If you change DB
+credentials, update both `.env` (for local runs) and `docker-compose.yml`.
+
+Stop and remove containers:
+
+```bash
+docker compose down -v
+```
+
+Troubleshooting
+
+- `ModuleNotFoundError: No module named 'app'` when running `pytest`: run `pytest` from the project root or use the venv's `python`.
+- Installation issues on Windows (building native packages): recreate the venv, upgrade `pip setuptools wheel`, and use `--prefer-binary` if needed. This repo pins `PyYAML` to avoid builds on Windows.
+- PowerShell blocks `Activate.ps1`: use the venv's `python` directly (`.venv\Scripts\python -m ...`) or temporarily run `Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned`.
+
+Contributing
+
+Pull requests and issues are welcome. For large changes, open an issue describing the intent first.

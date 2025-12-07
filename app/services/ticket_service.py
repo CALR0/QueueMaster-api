@@ -1,8 +1,8 @@
 from sqlalchemy.orm import Session
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 
-from app.models.models import Ticket, Queue, TicketStatus
+from app.models import Ticket, Queue, TicketStatus
 from app.schemas.ticket import TicketCreate
 from app.utils.fifo import FIFOQueue
 from app.utils.time_calc import duration_seconds
@@ -45,7 +45,7 @@ def assign_next(db: Session, queue_id: int) -> Optional[Ticket]:
     if not ticket:
         return None
     ticket.status = TicketStatus.served
-    ticket.served_at = datetime.utcnow()
+    ticket.served_at = datetime.now(timezone.utc)
     db.add(ticket)
     db.commit()
     db.refresh(ticket)
@@ -58,9 +58,9 @@ def change_status(db: Session, ticket_id: int, status: TicketStatus) -> Optional
         return None
     ticket.status = status
     if status == TicketStatus.served:
-        ticket.served_at = datetime.utcnow()
+        ticket.served_at = datetime.now(timezone.utc)
     if status == TicketStatus.cancelled:
-        ticket.canceled_at = datetime.utcnow()
+        ticket.canceled_at = datetime.now(timezone.utc)
     db.add(ticket)
     db.commit()
     db.refresh(ticket)

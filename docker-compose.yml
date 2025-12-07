@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: queuemaster
+      POSTGRES_PASSWORD: queuemaster
+      POSTGRES_DB: queuemaster
+    ports:
+      - '5432:5432'
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  web:
+    build: .
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql+psycopg2://queuemaster:queuemaster@db:5432/queuemaster
+      LOG_LEVEL: INFO
+    ports:
+      - '8000:8000'
+    command: sh -c "alembic upgrade head && uvicorn app:app --host 0.0.0.0 --port 8000"
+
+volumes:
+  db_data:
